@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Alert } from "react-native";
+import { Alert, Button, Text, TextInput, View } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiClient from "../api";
+import tw from 'twrnc';
 
 
 const LoginScreen  = () => {
@@ -38,5 +39,30 @@ const LoginScreen  = () => {
         }
     };
 
-    return()
-}
+    return(
+        <View style={tw`{flex-1 justify-centent items-center bg-slate-100 p-8}`}>
+            <Text style={tw`{text-3xl font-bold mb-8}`}>ログイン</Text>
+
+            <TextInput
+            style={tw`w-full bg-white border border-gray-300 rounded-lg p-3 mb-4`}
+            placeholder="ユーザー名"
+            onChangeText={setUsername}
+            autoCapitalize="none"
+            />
+
+            <TextInput
+            style={tw`w-full bg-white border-gray-300 roundedlg p-3 mb-6`}
+            placeholder="パスワード"
+            value={password}
+            onChangeText={setPassWord}
+            secureTextEntry
+            />
+
+            <Button title="ログイン" onPress={handleLogin} />
+
+            {/*Todo :　新規登録画面へのナビゲーションボタンを追加 */}
+        </View>
+    );
+};
+
+export default LoginScreen;

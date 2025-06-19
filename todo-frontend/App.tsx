@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import tw from 'twrnc'; // twrncをインポート
 import apiClient from './api';
+import LoginScreen from './src/LoginScreens';
 
 // Taskの型を定義
 type Task = {
@@ -87,39 +88,6 @@ export default function App() {
   // --- ここから下の表示部分(JSX)のスタイルをtwrncに戻します ---
 
   return (
-    <SafeAreaView style={tw`flex-1 bg-slate-100`}>
-      <View style={tw`p-4`}>
-        <Text style={tw`text-2xl font-bold mb-4`}>タスク一覧</Text>
-
-        <View style={tw`flex-row mb-4`}>
-          <TextInput
-            style={tw`border border-gray-300 rounded-lg p-2 flex-1 mr-2`}
-            placeholder="新しいタスクを入力..."
-            value={newTitle}
-            onChangeText={setNewTitle}
-          />
-          <Button title="追加" onPress={handleAddTask} />
-        </View>
-
-        <FlatList
-          data={tasks}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={tw`bg-white p-4 rounded-lg mb-2 shadow flex-row items-center`}>
-              <TouchableOpacity
-                style={tw`flex-1 mr-4`}
-                onPress={() => handleToggleTask(item.id, item.completed)}
-              >
-                <Text style={tw`text-lg ${item.completed ? 'line-through text-gray-400' : ''}`}>
-                  {item.title}
-                </Text>
-              </TouchableOpacity>
-              <Button title="削除" color="red" onPress={() => handleDeleteTask(item.id)} />
-            </View>
-          )}
-        />
-      </View>
-     
-    </SafeAreaView>
+    <LoginScreen />
   );
 }
