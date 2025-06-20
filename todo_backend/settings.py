@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-ic3_ov#m+9kxck_*8dmvc#9ao9^2+!4un6g@3g#r-5^pa2ze)(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '10.0.2.2', '192.168.0.11']
 
 
 # Application definition
@@ -37,17 +37,33 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'tasks'
+    'tasks',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'dj_rest_auth',
+    'django.contrib.sites',
+    'allauth',                  # ← 追加
+    'allauth.account',          # ← 追加
+    'allauth.socialaccount',    # ← 追加
+    'dj_rest_auth.registration',# ← 追加
+    'corsheaders'
 ]
+
+
+# サイトIDを設定（dj-rest-authで必要）
+SITE_ID = 1 # ← INSTALLED_APPSの下あたりに追加
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+     'corsheaders.middleware.CorsMiddleware', 
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'todo_backend.urls'
@@ -121,3 +137,23 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# todo_backend/settings.py の末尾に追加
+
+# どのオリジンからのリクエストを許可するか
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8081",  # Expo Go (React Native)
+    "http://localhost:3000",  # 一般的なWebフロントエンド
+]
+
+# settings.py の末尾にある REST_FRAMEWORK の設定を、以下のように修正
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        # この行をコメントアウト、または削除します。
+        # 'rest_framework.authentication.SessionAuthentication', 
+        
+        # TokenAuthentication のみを残します。
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+}
