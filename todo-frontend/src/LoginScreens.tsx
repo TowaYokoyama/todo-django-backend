@@ -20,9 +20,11 @@ const LoginScreen = ({ onLoginSuccess }: LoginScreenProps) => {
         }
         try {
             const response = await apiClient.post('/auth/login/', {
-                username: username,
-                password: password,
-            });
+                username: username, 
+            password: password,
+            }
+        
+        );
             const token = response.data.key;
             // 社員証(トークン)を発行して財布(AsyncStorage)にしまう
             await AsyncStorage.setItem('authToken', token);

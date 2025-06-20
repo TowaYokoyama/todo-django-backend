@@ -1,8 +1,14 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native'; // Platformをインポート
 
-// Webブラウザでの開発では、'localhost'が使えます。
-const API_BASE_URL = 'http://localhost:8000'; // または 'http://127.0.0.1:8000'
+// ▼▼▼ ここをあなたのPCのIPアドレスに書き換えてください ▼▼▼
+const YOUR_COMPUTER_IP = '192.168.0.11'; // 例：先ほど確認したIPアドレス
+
+// OSを自動判別し、適切なAPIのURLを決定します。
+const API_BASE_URL = Platform.OS === 'android' 
+  ? `http://10.0.2.2:8000` // Android "エミュレータ" 用の特別なアドレス
+  : `http://${YOUR_COMPUTER_IP}:8000`; // iOSシミュレータや実機はこちら
 
 const apiClient = axios.create({
   baseURL: `${API_BASE_URL}/api/`,
@@ -11,18 +17,13 @@ const apiClient = axios.create({
   },
 });
 
-// ★★★ このインターセプター部分はWebでも必須です ★★★
+// ▼▼▼ このインターセプター部分は変更不要です ▼▼▼
 apiClient.interceptors.request.use(
   async (config) => {
-    // AsyncStorageから認証トークンを取得
     const token = await AsyncStorage.getItem('authToken');
-    
-    // もしトークンがあれば、リクエストヘッダーにAuthorization情報を追加
     if (token) {
       config.headers.Authorization = `Token ${token}`;
     }
-    
-    // 改造したリクエスト設定を返す
     return config;
   },
   (error) => {

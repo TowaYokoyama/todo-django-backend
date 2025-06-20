@@ -1,40 +1,74 @@
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; // アイコン表示のためにインポート
 
-import LoginScreen from './src/LoginScreens';
-import MainScreen from './src/MainScreen';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import ProfileScreen from './src/Profile';
+// スクリーンコンポーネントをインポート
+import LoginScreen from './src/LoginScreens'; // パスを確認してください
+import MainScreen from './src/MainScreen';   // パスを確認してください
+import ProfileScreen from './src/Profile'; // パスを確認してください
+import TaskDetailScreen from './src/TaskDetail';
 
-const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator(); //タブナヴィゲーターを作成する。
+const Stack = createNativeStackNavigator(); //一方通行の道案内をしてくれる
+const Tab = createBottomTabNavigator(); //ホーム、タスク、プロフィールのようになります。
 
-//ログイン後に表示するタブ全体のコンポーネント
-function MainTabs({onLogout} : {onLogout: () => void}) {
+// 仮のホーム画面（あなたのデザイン案に合わせて後で作りこみます）
+const HomeScreen = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <Text>ホーム画面</Text>
+  </View>
+);
+
+// ログイン後に表示するタブ全体のコンポーネント
+function MainTabs({ onLogout }: { onLogout: () => void }) {
   return (
-    <Tab.Navigator screenOptions={{ headerShown :false}}>
-      {/*タスク一覧画面のタブ */}
-      <Tab.Screen name="Tasks">
-        {()=> <MainScreen onLogout={onLogout} />}
+    <Tab.Navigator
+      // ▼▼▼ この screenOptions の部分を修正・反映しました ▼▼▼
+      screenOptions={({ route }) => ({
+        // 各タブのアイコンを設定します
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: React.ComponentProps<typeof Ionicons>['name'] = 'alert-circle';
+
+          // 表示中のルート名に応じて、表示するアイコンを動的に切り替えます
+          if (route.name === 'Home') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Tasks') {
+            iconName = focused ? 'checkmark-done-circle' : 'checkmark-done-circle-outline';
+          } else if (route.name === 'Profile') {
+            iconName = focused ? 'person-circle' : 'person-circle-outline';
+          }
+
+          // 最終的に選ばれたアイコンコンポーネントを返します
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: 'tomato',   // アクティブなタブの色
+        tabBarInactiveTintColor: 'gray',   // 非アクティブなタブの色
+      })}
+    >
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'ホーム' }}/>
+      
+      <Tab.Screen name="Tasks" options={{ title: 'タスク' }}>
+        {() => <MainScreen onLogout={onLogout} />}
       </Tab.Screen>
 
-      {/**プロフィール画面のタブ */}
-      <Tab.Screen name="Profile">
-        {()=> <ProfileScreen onLogout={onLogout} />}
+      <Tab.Screen name="Profile" options={{ title: 'プロフィール' }}>
+        {() => <ProfileScreen onLogout={onLogout} />}
       </Tab.Screen>
-
-      {/* Todo: デザイン案にあるほかのタブもここに追加していく */}
+      
     </Tab.Navigator>
   );
 }
 
+
+// これがアプリ全体のメインコンポーネントです
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // ログイン状態のチェックとログアウト処理の部分は変更ありません
   useEffect(() => {
     const checkToken = async () => {
       try {
@@ -50,7 +84,7 @@ export default function App() {
     };
     checkToken();
   }, []);
-  
+
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem('authToken');
@@ -61,20 +95,28 @@ export default function App() {
   };
 
   if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>読み込み中...</Text>
-      </View>
-    );
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>読み込み中...</Text></View>;
   }
 
   return (
     <NavigationContainer>
-      <Stack.Navigator>{/* {isLoggedIn...} を始める */}
+      <Stack.Navigator>
         {isLoggedIn ? (
+          <>
           <Stack.Screen name="MainApp" options={{ headerShown: false }}>
             {() => <MainTabs onLogout={handleLogout} />}
           </Stack.Screen>
+
+          <Stack.Screen 
+          name="TaskDetail"
+          component={TaskDetailScreen}  /*そのnamwe(キー)が呼ばれたらそのコンポーネントを読んで表示しますよー */
+          options={{
+            title: '新しいタスク',
+            presentation:'modal'
+          }}
+          />
+
+          </>
         ) : (
           <Stack.Screen name="Login" options={{ title: 'ログイン' }}>
             {(props) => <LoginScreen {...props} onLoginSuccess={() => setIsLoggedIn(true)} />}
