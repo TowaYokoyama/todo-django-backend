@@ -26,9 +26,7 @@ type Task = {
   category: number | null;
 };
 
-type MainScreenProps = {
-  onLogout: () => void;
-};
+
 
 // --- コンポーネント本体 ---
 // ルートパラメータ型を定義
@@ -37,7 +35,7 @@ type RootStackParamList = {
   TaskDetail: { taskId: number | undefined };
 };
 
-export default function MainScreen({ onLogout }: MainScreenProps) {
+export default function MainScreen() {
   const theme = useAppTheme();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const isFocused = useIsFocused();
@@ -106,7 +104,7 @@ const handleDeleteTask = (id: number) => {
         <View style={tw`flex-row justify-between items-center mb-4`}>
           {/* ▼▼▼ theme.colors.text に修正 ▼▼▼ */}
           <Text style={[tw`text-3xl font-bold`, { color: theme.colors.text }]}>タスク</Text>
-          <Button title="ログアウト" onPress={onLogout} color="gray" />
+          
         </View>
 
         {/* タスク一覧 */}
