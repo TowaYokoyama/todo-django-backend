@@ -8,7 +8,7 @@ type SettingsScreenProps = {
 };
 
 const SettingsScreen = ({ onLogout }: SettingsScreenProps) => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
 
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-100`}>

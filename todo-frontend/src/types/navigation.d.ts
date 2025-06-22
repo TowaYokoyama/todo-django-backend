@@ -1,22 +1,14 @@
-// Stack Navigatorが管理する画面一覧
+// Stack Navigatorが管理する画面の一覧と、それぞれが受け取るパラメータの型
 export type RootStackParamList = {
-  MainTabs: undefined; // ログイン後のタブ画面全体
-  TaskDetail: { taskId?: number };
-  CategorySettings: undefined;
-  Login: undefined;
+  MainTabs: undefined;              // ログイン後のタブ画面全体
+  TaskDetail: { taskId?: number };  // 新規作成/編集画面
+  CategorySettings: undefined;      // カテゴリー管理画面
+  Login: undefined;                 // ログイン画面
 };
 
-// Tab Navigatorが管理する画面一覧
+// BottomTab Navigatorが管理する画面の一覧
 export type RootTabParamList = {
   Home: undefined;
   Tasks: undefined;
   Settings: undefined;
 };
-
-// この型定義をグローバルに利用できるようにするためのおまじない
-declare global {
-  namespace ReactNavigation {
-    // Stack Navigatorの型をグローバルに設定
-    interface RootParamList extends RootStackParamList {}
-  }
-}
