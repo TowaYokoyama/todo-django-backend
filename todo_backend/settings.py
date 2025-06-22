@@ -57,7 +57,7 @@ SITE_ID = 1 # ← INSTALLED_APPSの下あたりに追加
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-     'corsheaders.middleware.CorsMiddleware', 
+     'corsheaders.middleware.CorsMiddleware',  # なるべく上の方（SessionMiddlewareやCommonMiddlewareより前が推奨）
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -144,6 +144,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8081",  # Expo Go (React Native)
     "http://localhost:3000",  # 一般的なWebフロントエンド
+      "http://127.0.0.1:9000",
 ]
 
 # settings.py の末尾にある REST_FRAMEWORK の設定を、以下のように修正

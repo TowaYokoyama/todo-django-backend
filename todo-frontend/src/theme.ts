@@ -43,5 +43,5 @@ export const darkTheme = {
 // デバイスのテーマ設定に応じて適切なテーマを返すカスタムフック
 export const useAppTheme = () => {
   const colorScheme = useColorScheme();
-  return colorScheme === 'dark' ? darkTheme : darkTheme; // デザイン案に合わせて、常にダークテーマを返すように一旦設定
+  return lightTheme;
 };

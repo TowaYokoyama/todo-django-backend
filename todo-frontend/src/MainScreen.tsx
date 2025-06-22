@@ -43,10 +43,54 @@ export default function MainScreen({ onLogout }: MainScreenProps) {
   const isFocused = useIsFocused();
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  // --- API関連の関数 (変更なし) ---
-  const fetchTasks = async () => { /* ... */ };
-  const handleToggleTask = async (id: number, currentStatus: boolean) => { /* ... */ };
-  const handleDeleteTask = (id: number) => { /* ... */ };
+  const fetchTasks = async () => {
+  try {
+    const response = await apiClient.get<Task[]>('tasks/');
+    setTasks(response.data);
+  } catch (error) {
+    console.error('タスク取得エラー:', error);
+    Alert.alert('エラー', 'タスクの取得に失敗しました。');
+  }
+};
+
+// タスクの完了状態をトグル
+const handleToggleTask = async (id: number, currentStatus: boolean) => {
+  try {
+    await apiClient.patch(`tasks/${id}/`, {
+      completed: !currentStatus,
+    });
+    fetchTasks(); // 状態をリロード
+  } catch (error) {
+    console.error('タスク状態更新エラー:', error);
+    Alert.alert('エラー', 'タスクの状態更新に失敗しました。');
+  }
+};
+
+// タスクを削除
+const handleDeleteTask = (id: number) => {
+  Alert.alert(
+    '削除の確認',
+    'このタスクを本当に削除しますか？',
+    [
+      { text: 'キャンセル', style: 'cancel' },
+      {
+        text: '削除',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await apiClient.delete(`tasks/${id}/`);
+            fetchTasks(); // 再取得
+          } catch (error) {
+            console.error('タスク削除エラー:', error);
+            Alert.alert('エラー', 'タスクの削除に失敗しました。');
+          }
+        },
+      },
+    ]
+  );
+};
+
+
   useEffect(() => {
     if (isFocused) {
       fetchTasks();

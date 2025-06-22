@@ -6,8 +6,9 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 import { RootStackParamList } from './types/navigation';
-import { useAppTheme } from './theme'; // 作成したテーマフックをインポート
+import { useAppTheme } from './theme';
 import apiClient from '../api';
+import axios from 'axios';
 
 import StyledTextInput from './components/StyledTextInput';
 import StyledButton from './components/StyledButton';
@@ -19,35 +20,142 @@ type Category = {
   name: string;
 };
 
+// タスク詳細データの型（編集時に使用）
+type TaskData = {
+  title: string;
+  description?: string;
+  category: number;
+  priority: number;
+  due_date: string;
+};
+
+
 // --- コンポーネント本体 ---
 const TaskDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, 'TaskDetail'>>();
-  const theme = useAppTheme(); // ★★★ テーマを取得 ★★★
+  const theme = useAppTheme();
   const taskId = route.params?.taskId;
 
-  // --- Stateやロジックの部分は変更ありません ---
+  // --- State定義 ---
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const [priority, setPriority] = useState(2);
+  const [priority, setPriority] = useState(2); // デフォルトは '中'
   const [dueDate, setDueDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-
-    // ▼▼▼ ドロップダウンの開閉状態を管理するStateを追加 ▼▼▼
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [priorityOpen, setPriorityOpen] = useState(false);
-  
-  
-  
-  useEffect(() => { /* ... 変更なし ... */ }, [taskId]);
-  const handleSaveTask = async () => { /* ... 変更なし ... */ };
+
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // --- 変更点①：画面表示時のデータ読み込み処理 ---
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  useEffect(() => {
+    const fetchData = async () => {
+      // 1. カテゴリー一覧をサーバーから取得してドロップダウンにセット
+      try {
+        const catResponse = await apiClient.get<Category[]>('/categories/');
+        setCategories(catResponse.data);
+      } catch (error) {
+        console.error('カテゴリーの取得に失敗:', error);
+        Alert.alert('エラー', 'カテゴリーの取得に失敗しました。');
+      }
+
+      // 2. もしtaskIdがあれば、タスク詳細を取得（編集モード）
+      if (taskId) {
+        try {
+          const taskResponse = await apiClient.get<TaskData>(`/tasks/${taskId}/`);
+          const task = taskResponse.data;
+          // 取得したデータでStateを更新
+          setTitle(task.title);
+          setDescription(task.description || '');
+          setSelectedCategory(task.category);
+          setPriority(task.priority);
+          if (task.due_date) {
+            // YYYY-MM-DD形式の文字列をDateオブジェクトに変換
+            setDueDate(new Date(task.due_date + 'T00:00:00'));
+          }
+        } catch (error) {
+          console.error('タスク詳細の取得に失敗:', error);
+          Alert.alert('エラー', 'タスク詳細の取得に失敗しました。');
+        }
+      }
+    };
+
+    fetchData();
+  }, [taskId]); // taskIdは基本変わらないので、初回マウント時に実行される
+
+ // TaskDetailScreen.tsx の handleSaveTask 関数をこれに置き換えます
+// ★★★ axiosをこのファイルでインポートする必要があるかもしれません ★★★
+// import axios from 'axios'; 
+
+const handleSaveTask = async () => {
+  try {
+    if (!title) {
+      Alert.alert('エラー', 'タスク名を入力してください。');
+     
+      return;
+    }
+    if (selectedCategory === null) {
+      Alert.alert('エラー', 'カテゴリーを選択してください。');
+      
+      return;
+    }
+
+    console.log('[4] 送信データの作成を開始します。');
+    const taskData = {
+      title: title,
+      description: description,
+      category: selectedCategory,
+      priority: priority,
+      due_date: dueDate.toISOString().split('T')[0],
+    };
+    if (taskId) {
+        await apiClient.put(`/tasks/${taskId}/`, taskData);
+    } else {
+        await apiClient.post('/tasks/', taskData);
+    }
+    
+    Alert.alert('成功', taskId ? 'タスクを更新しました。' : 'タスクを追加しました。');
+    navigation.goBack();
+
+  } catch (error) { // ここで error は 'unknown' 型になります
+    console.log('[FAIL] APIリクエストでエラーが発生しました！');
+
+    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+    // --- ここからがTypeScriptエラーの修正箇所です ---
+    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+    // まず、axios のエラーかどうかを判定します
+    if (axios.isAxiosError(error)) {
+      // このブロックの中では、error は AxiosError 型として扱えます
+      if (error.response) {
+        // サーバーからエラー応答があった場合 (4xx, 5xx エラー)
+        console.error('サーバーからのエラー応答:', error.response.data);
+        console.error('ステータスコード:', error.response.status);
+      } else if (error.request) {
+        // リクエストは送信されたが、サーバーから応答がなかった場合 (ネットワークエラーなど)
+        console.error('サーバーから応答がありませんでした。IPアドレスやネットワークを確認してください。');
+      } else {
+        // リクエストを準備する段階で何か問題があった場合
+        console.error('リクエスト設定エラー:', error.message);
+      }
+    } else {
+      // axios 以外の、予期せぬエラーの場合
+      console.error('axios以外の予期せぬエラーです:', error);
+    }
+
+    Alert.alert('エラー', 'タスクの保存に失敗しました。コンソールのログを確認してください。');
+  }
+};
+
+  // --- その他のヘルパー関数やメモ化された値 ---
   const onChangeDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios' ? true : false); // iOSは表示したままにできる
+    setShowDatePicker(Platform.OS === 'ios' ? true : false);
     if (selectedDate) {
       setDueDate(selectedDate);
-      if (Platform.OS !== 'ios') setShowDatePicker(false); // Android/Webでは選択後すぐに閉じる
+      if (Platform.OS !== 'ios') setShowDatePicker(false);
     }
   };
 
@@ -57,9 +165,8 @@ const TaskDetailScreen = () => {
   
   // --- 表示部分 (JSX) ---
   return (
-    // ▼▼▼ ここから下のスタイルに theme を適用していきます ▼▼▼
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      {/* 自作ヘッダー */}
+      {/* ヘッダー */}
       <View style={tw`flex-row justify-between items-center p-4 border-b border-gray-200 dark:border-gray-800`}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="close-outline" size={30} color={theme.colors.text} />
@@ -67,7 +174,7 @@ const TaskDetailScreen = () => {
         <Text style={[tw`text-xl font-bold`, { color: theme.colors.text }]}>
           {taskId ? 'タスクを編集' : '新しいタスク'}
         </Text>
-        <View style={tw`w-8`} />{/* 中央寄せのためのダミースペース */}
+        <View style={tw`w-8`} />
       </View>
       
       <ScrollView style={tw`p-4`}>
@@ -75,21 +182,19 @@ const TaskDetailScreen = () => {
         <View style={[tw`p-4 rounded-lg`, { backgroundColor: theme.colors.card }]}>
           <StyledTextInput label="タスク名" value={title} onChangeText={setTitle} />
           <View style={[tw`h-px my-2`, { backgroundColor: theme.colors.border }]} />
-
-           {/* ▼▼▼ StyledDropdownに置き換え ▼▼▼ */}
+          
           <StyledDropdown
             label="カテゴリー"
             open={categoryOpen}
             value={selectedCategory}
-            items={[{ label: 'カテゴリーを選択...', value: null }, ...categoryItems]}
+            items={categoryItems} // APIから取得したリストを使用
             setOpen={setCategoryOpen}
             setValue={setSelectedCategory}
-            zIndex={2000} // カテゴリーを優先的に表示
+            zIndex={2000}
           />
           
-          <View style={tw`my-4`} />{/* スペース調整 */}
+          <View style={tw`my-4`} />
 
-          {/* ▼▼▼ StyledDropdownに置き換え ▼▼▼ */}
           <StyledDropdown
             label="優先度"
             open={priorityOpen}
@@ -97,11 +202,12 @@ const TaskDetailScreen = () => {
             items={priorityItems}
             setOpen={setPriorityOpen}
             setValue={setPriority}
-            zIndex={1000} // 優先度はカテゴリーより手前に表示
+            zIndex={1000}
           />
         </View>
 
         <View style={[tw`h-px my-2`, { backgroundColor: theme.colors.border }]} />
+
         <TouchableOpacity onPress={() => setShowDatePicker(true)} style={tw`flex-row justify-between items-center py-3`}>
           <Text style={[tw`text-lg font-semibold`, { color: theme.colors.text }]}>期日</Text>
           <View style={tw`flex-row items-center`}>

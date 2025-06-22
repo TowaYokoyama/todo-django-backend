@@ -1,22 +1,38 @@
-from django.shortcuts import render
-#データべースからタスクのデータをすべて取り出す
-#そのデータをJSON形式に変換し、
-#変換したJSONをレスポンスとしてアプリに送り出す
-# Create your views here.
+# tasks/views.py
 
-from rest_framework import viewsets , permissions
-from .models import Task , Category
-from .serializers import TaskSerializer , CategorySerializer
+from rest_framework import viewsets, permissions # permissions を直接インポート
+from .models import Task, Category
+from .serializers import TaskSerializer, CategorySerializer
 
-class CategoryViewSet(viewsets.ModelViewSet):  # ← 修正済み！
-    queryset = Category.objects.all() #データの範囲を取り決める
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [permissions.AllowAny]
-    
+    permission_classes = [permissions.IsAuthenticated] # ← ここはOKです！
+
+    # ★★★★★ これが必要です！この関数を追加してください ★★★★★
+    def perform_create(self, serializer):
+        """新しいカテゴリーが作成される際に、自動でリクエストユーザーをセットする"""
+        serializer.save(user=self.request.user)
+
+    # ★★★★★ こちらも追加してください ★★★★★
+    def get_queryset(self):
+        """ログインしているユーザー自身のカテゴリーのみを返すようにする"""
+        # 親クラスのquerysetをベースに、ログインユーザーで絞り込む
+        return super().get_queryset().filter(user=self.request.user)
+
+
+# (↓ TaskViewSetは参考までにそのままにしておきます)
 class TaskViewSet(viewsets.ModelViewSet):
-    queryset = Task.objects.all() #データの範囲を取り決める
+    queryset = Task.objects.all()
     serializer_class = TaskSerializer
-    per_mission_class = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     
-    #誰でも許可
-    #たったこれだけのコードでGET POST GET PUT /PATCh DELETEができる！
+     # ★★★★★ ここからがタスク用の修正箇所です ★★★★★
+    def perform_create(self, serializer):
+        """新しいタスクが作成される際に、自動でリクエストユーザーをセットする"""
+        serializer.save(user=self.request.user)
+
+    # ★★★★★ こちらもタスク用に修正してください ★★★★★
+    def get_queryset(self):
+        """ログインしているユーザー自身のタスクのみを返すようにする"""
+        return self.queryset.filter(user=self.request.user)
