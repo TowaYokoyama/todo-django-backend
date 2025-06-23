@@ -27,7 +27,10 @@ type TaskData = {
   category: number;
   priority: number;
   due_date: string;
+  goal?: number; // 目標IDを追加
 };
+
+type Goal = { id: number; name: string; };
 
 
 // --- コンポーネント本体 ---
@@ -47,6 +50,9 @@ const TaskDetailScreen = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [priorityOpen, setPriorityOpen] = useState(false);
+  const [goals, setGoals] = useState<Goal[]>([]);
+const [selectedGoal, setSelectedGoal] = useState<number | null>(null);
+const [goalOpen, setGoalOpen] = useState(false);
 
   // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   // --- 変更点①：画面表示時のデータ読み込み処理 ---
@@ -62,6 +68,16 @@ const TaskDetailScreen = () => {
         Alert.alert('エラー', 'カテゴリーの取得に失敗しました。');
       }
 
+          // ↓↓↓ 目標一覧の取得処理を追加 ↓↓↓
+    try {
+      const goalResponse = await apiClient.get<Goal[]>('/goals/');
+      setGoals(goalResponse.data);
+    } catch (error) {
+      console.error('目標の取得に失敗:', error);
+    }
+
+
+
       // 2. もしtaskIdがあれば、タスク詳細を取得（編集モード）
       if (taskId) {
         try {
@@ -72,9 +88,10 @@ const TaskDetailScreen = () => {
           setDescription(task.description || '');
           setSelectedCategory(task.category);
           setPriority(task.priority);
+            setSelectedGoal(task.goal !== undefined ? task.goal : null); // task.goalが目標のID
           if (task.due_date) {
             // YYYY-MM-DD形式の文字列をDateオブジェクトに変換
-            setDueDate(new Date(task.due_date + 'T00:00:00'));
+          setDueDate(new Date(task.due_date + 'T00:00:00'));
           }
         } catch (error) {
           console.error('タスク詳細の取得に失敗:', error);
@@ -103,13 +120,14 @@ const handleSaveTask = async () => {
       return;
     }
 
-    console.log('[4] 送信データの作成を開始します。');
+   
     const taskData = {
       title: title,
       description: description,
       category: selectedCategory,
       priority: priority,
       due_date: dueDate.toISOString().split('T')[0],
+      goal: selectedGoal, // ★★★ この行を追加 ★★★
     };
     if (taskId) {
         await apiClient.put(`/tasks/${taskId}/`, taskData);
@@ -122,10 +140,6 @@ const handleSaveTask = async () => {
 
   } catch (error) { // ここで error は 'unknown' 型になります
     console.log('[FAIL] APIリクエストでエラーが発生しました！');
-
-    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-    // --- ここからがTypeScriptエラーの修正箇所です ---
-    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 
     // まず、axios のエラーかどうかを判定します
     if (axios.isAxiosError(error)) {
@@ -161,6 +175,7 @@ const handleSaveTask = async () => {
 
   const categoryItems = useMemo(() => categories.map(cat => ({ label: cat.name, value: cat.id })), [categories]);
   const priorityItems = useMemo(() => ([{ label: '低', value: 1 }, { label: '中', value: 2 }, { label: '高', value: 3 }]), []);
+  const goalItems = useMemo(() => goals.map(goal => ({ label: goal.name, value: goal.id })), [goals]);
 
   
   // --- 表示部分 (JSX) ---
@@ -204,8 +219,19 @@ const handleSaveTask = async () => {
             setValue={setPriority}
             zIndex={1000}
           />
-        </View>
+       
 
+        <StyledDropdown
+       label="関連する目標（任意）"
+      open={goalOpen}
+       value={selectedGoal}
+      items={goalItems}
+      setOpen={setGoalOpen}
+       setValue={setSelectedGoal}
+       zIndex={1500} // zIndexが他のドロップダウンと被らないように調整
+       />
+
+       </View>
         <View style={[tw`h-px my-2`, { backgroundColor: theme.colors.border }]} />
 
         <TouchableOpacity onPress={() => setShowDatePicker(true)} style={tw`flex-row justify-between items-center py-3`}>
@@ -223,7 +249,7 @@ const handleSaveTask = async () => {
         {showDatePicker && (<DateTimePicker value={dueDate} mode="date" display="spinner" onChange={onChangeDate} />)}
         
         <View style={tw`my-8`}>
-          <StyledButton title={taskId ? "変更を保存" : "タスクを追加"} onPress={handleSaveTask} />
+          <StyledButton title={taskId ? "保存" : "⚡⚡"} onPress={handleSaveTask} />
         </View>
       </ScrollView>
     </SafeAreaView>

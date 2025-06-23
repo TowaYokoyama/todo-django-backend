@@ -2,7 +2,7 @@
 import { useColorScheme } from 'react-native';
 
 const colors = {
-  primary: '#FF453A', // デザイン案のボタンの色に合わせました
+  primary: '#7e3ff2', // デザイン案のボタンの色に合わせました
   white: '#FFFFFF',
   black: '#000000',
   gray: '#8A8A8D',

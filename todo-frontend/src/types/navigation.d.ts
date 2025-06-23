@@ -23,7 +23,8 @@ export type RootStackParamList = {
   // タブとは別に、スタックに直接属する画面
   TaskDetail: { taskId?: number };
   CategorySettings: undefined;
-    Goals: NavigatorScreenParams<GoalStackParamList>;
+   Goals: NavigatorScreenParams<GoalStackParamList>; 
+
 };
 
 

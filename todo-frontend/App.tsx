@@ -13,18 +13,34 @@ import SettingsScreen from './src/SetteingScreen';
 import TaskDetailScreen from './src/TaskDetail';
 import CategorySettingsScreen from './src/CategorySettingScreen';
 import LoginScreen from './src/LoginScreens';
+import HomeScreen from './src/HomeScreen';
+import GoalsScreen from './src/GoalScreen';
 
-// 仮の画面コンポーネント
-const HomeScreen = () => (<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>ホーム画面</Text></View>);
-const GoalsScreen = () => (<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>目標画面</Text></View>);
-const CalendarScreen = () => (<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>カレンダー画面</Text></View>);
+// GoalStackNavigatorの型定義
+import GoalDetailScreen from './src/GoalDetailScreen'; // GoalDetailScreenのimportが必要です（ファイル名に合わせて修正してください）
+
+type GoalStackParamList = {
+  GoalList: undefined;
+  GoalDetail: { goalId: string } | undefined;
+};
+
+const GoalStackNavigator = createNativeStackNavigator<GoalStackParamList>();
+
+function GoalStack() {
+  return (
+    <GoalStackNavigator.Navigator>
+      <GoalStackNavigator.Screen name="GoalList" component={GoalsScreen} options={{ headerShown: false }} />
+      <GoalStackNavigator.Screen name="GoalDetail" component={GoalDetailScreen} options={{ presentation: 'modal', title: '目標' }} />
+    </GoalStackNavigator.Navigator>
+  );
+}
 
 
 // --- ナビゲーターの作成 ---
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
-
+const CalendarScreen = () => (<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>カレンダー画面</Text></View>);
 // --- ログイン後のタブナビゲーター本体 ---
 // onLogoutをpropsとして受け取る
 function MainTabs({ onLogout }: { onLogout: () => void }) {
@@ -45,7 +61,7 @@ function MainTabs({ onLogout }: { onLogout: () => void }) {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'ホーム' }} />
-      <Tab.Screen name="Goals" component={GoalsScreen} options={{ title: '目標' }} />
+       <Tab.Screen name="Goals" component={GoalStack} options={{ title: '目標', headerShown: false }} />
       <Tab.Screen name="Tasks" component={MainScreen} options={{ title: 'タスク' }} />
       <Tab.Screen name="Calendar" component={CalendarScreen} options={{ title: 'カレンダー' }} />
       {/* SettingsScreenに直接onLogoutを渡す */}

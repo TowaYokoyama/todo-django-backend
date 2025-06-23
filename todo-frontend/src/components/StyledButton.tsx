@@ -25,7 +25,7 @@ const StyledButton = ({ title, style, ...props }: StyledButtonProps) => {
         tw`text-lg font-bold`,
         { color: theme.colors.onPrimary } 
       ]}>
-        {/* ★★★ ここを「保存」という固定文字から {title} に修正しました ★★★ */}
+        
         {title}
       </Text>
     </TouchableOpacity>
