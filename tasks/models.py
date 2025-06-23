@@ -24,6 +24,8 @@ class Goal(models.Model):
     description = models.TextField('詳細', blank=True, null=True)
     created_at = models.DateTimeField('作成日時', auto_now_add=True)
     updated_at = models.DateTimeField('更新日時', auto_now=True)
+    start_date = models.DateField('開始日', null=True, blank=True)
+    end_date = models.DateField('終了日', null=True, blank=True)
 
     class Meta:
         verbose_name = "目標"

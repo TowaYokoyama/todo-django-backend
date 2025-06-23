@@ -12,7 +12,7 @@ class GoalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Goal
         # APIで表示・操作したいフィールドを指定します
-        fields = ['id', 'name', 'description', 'created_at']
+        fields = ['id', 'name', 'description', 'created_at' ,'start_date', 'end_date']
         
 
 class CategorySerializer(serializers.ModelSerializer):
