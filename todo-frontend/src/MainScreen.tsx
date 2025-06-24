@@ -92,39 +92,14 @@ const handleDeleteTask = (id: number) => {
 };
 
 
+
   useEffect(() => {
     if (isFocused) {
       fetchTasks();
     }
   }, [isFocused]);
 
-  const displayedTasks = useMemo (()=> {
-    let filteredTasks = tasks;
-
-    //フィルタリング処理
-    if (filter === 'incomplete') {
-      filteredTasks = tasks.filter(task => !task.completed);
-    }else if (filter === 'complete') {
-      filteredTasks = tasks.filter(task => task.completed)
-    }
-
-    //allの場合は何もしないのでこれでいい
-
-    return filteredTasks.sort((a,b) => {
-      if (sort === 'priority') {
-        return b.priority - a.priority; //優先度が降順
-      }
-      if (sort === 'due_date') {
-        if (!a.due_date) return 1;
-        if (!b.due_date) return -1;
-        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();  // 締め切り日 早い順
-      }
-       return 0;
-    });
-  }, [tasks ,filter , sort]) ; //tasks, filter, sort のいずれかが変わったときだけ再計算
-   // 'created_at' はデフォルトのID順で代用できることが多いので、ここでは省略
-
-
+  
      useEffect(() => {
     // 通知の許可をリクエストする関数
     const registerForPushNotificationsAsync = async () => {
@@ -156,6 +131,35 @@ const handleDeleteTask = (id: number) => {
       }),
     });
   }, []);
+  
+
+  const displayedTasks = useMemo (()=> {
+    let filteredTasks = tasks;
+
+    //フィルタリング処理
+    if (filter === 'incomplete') {
+      filteredTasks = tasks.filter(task => !task.completed);
+    }else if (filter === 'complete') {
+      filteredTasks = tasks.filter(task => task.completed)
+    }
+
+    //allの場合は何もしないのでこれでいい
+
+    return filteredTasks.sort((a,b) => {
+      if (sort === 'priority') {
+        return b.priority - a.priority; //優先度が降順
+      }
+      if (sort === 'due_date') {
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();  // 締め切り日 早い順
+      }
+       return 0;
+    });
+  }, [tasks ,filter , sort]) ; //tasks, filter, sort のいずれかが変わったときだけ再計算
+   // 'created_at' はデフォルトのID順で代用できることが多いので、ここでは省略
+
+
 
 
   // --- 表示部分 (JSX) ---
