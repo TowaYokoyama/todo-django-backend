@@ -18,6 +18,7 @@ import GoalsScreen from './src/GoalScreen';
 
 // GoalStackNavigatorの型定義
 import GoalDetailScreen from './src/GoalDetailScreen'; // GoalDetailScreenのimportが必要です（ファイル名に合わせて修正してください）
+import CalendarScreen from './src/CarendarScreen';
 
 type GoalStackParamList = {
   GoalList: undefined;
@@ -39,8 +40,6 @@ function GoalStack() {
 // --- ナビゲーターの作成 ---
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<RootTabParamList>();
-
-const CalendarScreen = () => (<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>カレンダー画面</Text></View>);
 // --- ログイン後のタブナビゲーター本体 ---
 // onLogoutをpropsとして受け取る
 function MainTabs({ onLogout }: { onLogout: () => void }) {

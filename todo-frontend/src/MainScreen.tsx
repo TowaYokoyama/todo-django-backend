@@ -13,6 +13,7 @@ import { useNavigation, useIsFocused, NavigationProp } from '@react-navigation/n
 import apiClient from '../api';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from './theme';
+import * as Notifications from 'expo-notifications';
 
 
 // --- 型定義 ---
@@ -123,40 +124,89 @@ const handleDeleteTask = (id: number) => {
   }, [tasks ,filter , sort]) ; //tasks, filter, sort のいずれかが変わったときだけ再計算
    // 'created_at' はデフォルトのID順で代用できることが多いので、ここでは省略
 
+
+     useEffect(() => {
+    // 通知の許可をリクエストする関数
+    const registerForPushNotificationsAsync = async () => {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      // すでに許可されているか確認
+      if (existingStatus !== 'granted') {
+        // 許可されていない場合、リクエストを送信
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        // 許可されなかった場合
+        alert('プッシュ通知の許可が得られませんでした。');
+        return;
+      }
+    };
+
+    registerForPushNotificationsAsync();
+
+    // 通知をタップしたときの挙動などを設定（オプション）
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  }, []);
+
+
   // --- 表示部分 (JSX) ---
   return (
     // ▼▼▼ theme.colors.background に修正 ▼▼▼
     <SafeAreaView style={[tw`flex-1`, { backgroundColor: theme.colors.background }]}>
       <View style={tw`flex-1 p-4`}>
-        {/* コントロールパネル（ヘッダーはナビゲーターに任せる） */}
+        {/* --- フィルター＆ソートのコントロールパネル --- */}
         <View style={[tw`p-3 rounded-lg mb-4`, { backgroundColor: theme.colors.surface }]}>
-          
-          {/* フィルターセクション */}
-          <View style={tw`mb-2`}>
-            <Text style={[tw`text-sm font-bold mb-1`, { color: theme.colors.onSurfaceVariant }]}>絞り込み</Text>
-            <View style={tw`flex-row`}>
-              <TouchableOpacity onPress={() => setFilter('all')} style={tw`flex-1 p-2 rounded ${filter === 'all' ? 'bg-blue-500' : 'bg-gray-400'} mr-1`}>
-                <Text style={tw`text-center text-white font-bold`}>すべて</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setFilter('incomplete')} style={tw`flex-1 p-2 rounded ${filter === 'incomplete' ? 'bg-blue-500' : 'bg-gray-400'} mx-1`}>
-                <Text style={tw`text-center text-white font-bold`}>未完了</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setFilter('complete')} style={tw`flex-1 p-2 rounded ${filter === 'complete' ? 'bg-blue-500' : 'bg-gray-400'} ml-1`}>
-                <Text style={tw`text-center text-white font-bold`}>完了済み</Text>
-              </TouchableOpacity>
-            </View>
+        
+        {/* フィルターセクション */}
+        <View style={tw`mb-2`}>
+          <Text style={[tw`text-sm font-bold mb-2`, { color: theme.colors.onSurfaceVariant }]}>絞り込み</Text>
+          <View style={tw`flex-row`}>
+            <TouchableOpacity 
+              onPress={() => setFilter('all')} 
+              style={tw`flex-1 p-2 rounded ${filter === 'all' ? 'bg-blue-500' : 'bg-gray-500'} mr-1`}
+            >
+              <Text style={tw`text-center text-white font-bold`}>すべて</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setFilter('incomplete')} 
+              style={tw`flex-1 p-2 rounded ${filter === 'incomplete' ? 'bg-blue-500' : 'bg-gray-500'} mx-1`}
+            >
+              <Text style={tw`text-center text-white font-bold`}>未完了</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setFilter('complete')} 
+              style={tw`flex-1 p-2 rounded ${filter === 'complete' ? 'bg-blue-500' : 'bg-gray-500'} ml-1`}
+            >
+              <Text style={tw`text-center text-white font-bold`}>完了済み</Text>
+            </TouchableOpacity>
           </View>
+        </View>
 
-          {/* ソートセクション */}
-          <View>
-            <Text style={[tw`text-sm font-bold mb-1`, { color: theme.colors.onSurfaceVariant }]}>並び替え</Text>
-            <View style={tw`flex-row`}>
-              <TouchableOpacity onPress={() => setSort('priority')} style={tw`flex-1 p-2 rounded ${sort === 'priority' ? 'bg-green-500' : 'bg-gray-400'} mr-1`}>
-                <Text style={tw`text-center text-white font-bold`}>優先度順</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setSort('due_date')} style={tw`flex-1 p-2 rounded ${sort === 'due_date' ? 'bg-green-500' : 'bg-gray-400'} ml-1`}>
-                <Text style={tw`text-center text-white font-bold`}>締め切り日順</Text>
-              </TouchableOpacity>
+        {/* ソートセクション */}
+        <View>
+          <Text style={[tw`text-sm font-bold mb-2`, { color: theme.colors.onSurfaceVariant }]}>並び替え</Text>
+          <View style={tw`flex-row`}>
+            <TouchableOpacity 
+              onPress={() => setSort('priority')} 
+              style={tw`flex-1 p-2 rounded ${sort === 'priority' ? 'bg-green-500' : 'bg-gray-400'} mr-1`}
+            >
+              <Text style={tw`text-center text-white font-bold`}>優先度順</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setSort('due_date')} 
+              style={tw`flex-1 p-2 rounded ${sort === 'due_date' ? 'bg-green-500' : 'bg-gray-400'} ml-1`}
+            >
+              <Text style={tw`text-center text-white font-bold`}>締め切り日順</Text>
+            </TouchableOpacity>
             </View>
           </View>
 
