@@ -4,6 +4,7 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "jsx": "react-native"  // ← この行を追加または確認してください
+    "jsx": "react-native",  // ← この行を追加または確認してください
+    "module": "ESNext"
   }
 }
