@@ -4,9 +4,8 @@ import tw from 'twrnc';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import * as Notifications from 'expo-notifications'; // ★★★ 通知機能のためにインポートを追加 ★★★
+import * as Notifications from 'expo-notifications';
 import { useFocusEffect } from '@react-navigation/native';
-
 
 import { useAppTheme } from './theme';
 import apiClient from '../api';
@@ -15,11 +14,13 @@ import axios from 'axios';
 import StyledTextInput from './components/StyledTextInput';
 import StyledButton from './components/StyledButton';
 import StyledDropdown from './components/StyledDropdown';
+import { getNotificationSetting } from './utils/setting';
 
-// --- ルートスタックパラメータ型定義を追加 ---
+
+
+// --- ルートスタックパラメータ型定義 ---
 type RootStackParamList = {
   TaskDetail: { taskId?: number; goalId?: number };
-  // 他の画面があればここに追加
 };
 
 // --- 型定義 ---
@@ -28,9 +29,8 @@ type Category = {
   name: string;
 };
 
-// タスク詳細データの型（編集時に使用）
 type TaskData = {
-  id: number; // ★ 保存後のレスポンスでIDを受け取るために追加
+  id: number;
   title: string;
   description?: string;
   category: number;
@@ -48,9 +48,9 @@ const TaskDetailScreen = () => {
   const route = useRoute<RouteProp<RootStackParamList, 'TaskDetail'>>();
   const theme = useAppTheme();
   const taskId = route.params?.taskId;
-  const initialGoalId = route.params?.goalId; // 目標画面から渡されたgoalId
+  const initialGoalId = route.params?.goalId;
 
-  // --- State定義 ---
+  // --- State定義 (変更なし) ---
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
@@ -63,8 +63,14 @@ const TaskDetailScreen = () => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [selectedGoal, setSelectedGoal] = useState<number | null>(initialGoalId || null);
   const [goalOpen, setGoalOpen] = useState(false);
+  // ユーザーが設定したリマインダーの日時を覚えておくための変数
+const [reminderDate, setReminderDate] = useState<Date | null>(null); 
+// リマインダー用の日時ピッカーの表示・非表示を管理する変数
+const [showReminderPicker, setShowReminderPicker] = useState(false);
+  
 
-  // --- データ読み込み処理 ---
+
+  // --- データ読み込み処理 (変更なし) ---
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -96,133 +102,139 @@ const TaskDetailScreen = () => {
     };
     fetchData();
   }, [taskId]);
-
   
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // --- handleSaveTask関数を、正しい処理順序に修正 ---
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   const handleSaveTask = async () => {
-  try {
-    // 1. 入力内容のチェック
-    if (!title) {
-      Alert.alert('エラー', 'タスク名を入力してください。');
-      return;
-    }
-    if (selectedCategory === null) {
-      Alert.alert('エラー', 'カテゴリーを選択してください。');
-      return;
-    }
-
-    // 2. サーバーに送信するデータを作成
-    const taskData = {
-      title: title,
-      description: description,
-      category: selectedCategory,
-      priority: priority,
-      due_date: dueDate.toISOString().split('T')[0],
-      goal: selectedGoal,
-    };
-    
-    // 3. APIを呼び出してタスクを保存
-    let savedTaskResponse;
-    if (taskId) {
-      savedTaskResponse = await apiClient.put<TaskData>(`/tasks/${taskId}/`, taskData);
-    } else {
-      savedTaskResponse = await apiClient.post<TaskData>('/tasks/', taskData);
-    }
-    
-    Alert.alert('成功', taskId ? 'タスクを更新しました。' : 'タスクを追加しました。');
-
-    // 4. 保存が成功したら、通知を予約
-    if (taskData.due_date) {
-      try {
-        // ★★★ ここからが修正箇所 ★★★
-
-        // 'trigger'という名前の変数を作成
-        const triggerDate = new Date(taskData.due_date + 'T09:00:00'); // 締め切り日の朝9時
-
-
-        // 既存の通知をキャンセル（必要に応じてコメントを外す）
-        // await Notifications.cancelAllScheduledNotificationsAsync();
-        
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: "タスクの締め切りです！",
-            body: taskData.title,
-            data: { taskId: savedTaskResponse.data.id },
-          },
-          // Dateオブジェクトをそのまま渡す
-           trigger: {   
-                            type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
-    channelId: 'default',
-    year: triggerDate.getFullYear(),
-    month: triggerDate.getMonth() + 1,
-    day: triggerDate.getDate(),
-    hour: triggerDate.getHours(),
-    minute: triggerDate.getMinutes(),
-    second: 0,
-    repeats: false,
-  },
-        });
-        //console.log(`リマインダーを ${trigger.toLocaleString()} にセットしました`);
-
-        // ★★★ 修正箇所ここまで ★★★
-      } catch(e) {
-        console.error("通知の予約に失敗:", e);
-        Alert.alert("エラー", "リマインダーの設定に失敗しました。");
+    try {
+      // 1. 入力内容のチェック (変更なし)
+      if (!title) {
+        Alert.alert('エラー', 'タスク名を入力してください。');
+        return;
       }
-    }
-    
-    // 5. 前の画面に戻る
-    navigation.goBack();
+      if (selectedCategory === null) {
+        Alert.alert('エラー', 'カテゴリーを選択してください。');
+        return;
+      }
 
-  } catch (error) {
-    console.log('[FAIL] APIリクエストでエラーが発生しました！');
-    if (axios.isAxiosError(error)) {
-      if (error.response) {
-        console.error('サーバーからのエラー応答:', error.response.data);
-      } else if (error.request) {
-        console.error('サーバーから応答がありませんでした。');
+      // 2. サーバーに送信するデータを作成 (変更なし)
+      const taskData = {
+        title: title,
+        description: description,
+        category: selectedCategory,
+        priority: priority,
+        due_date: dueDate.toISOString().split('T')[0],
+        goal: selectedGoal,
+      };
+      
+      // 3. APIを呼び出してタスクを保存 (変更なし)
+      let savedTaskResponse;
+      if (taskId) {
+        savedTaskResponse = await apiClient.put<TaskData>(`/tasks/${taskId}/`, taskData);
       } else {
-        console.error('リクエスト設定エラー:', error.message);
+        savedTaskResponse = await apiClient.post<TaskData>('/tasks/', taskData);
       }
-    } else {
-      console.error('axios以外の予期せぬエラーです:', error);
-    }
-    Alert.alert('エラー', 'タスクの保存に失敗しました。');
-  }
-};
+      
+      Alert.alert('成功', taskId ? 'タスクを更新しました。' : 'タスクを追加しました。');
 
+      // ★★★ 4. 保存が成功したら、「設定を確認して」通知を予約 ★★★
+      // 執事を呼んで、ユーザーが設定した内容を取得します
+      // ★★★ ここからをごっそり入れ替え ★★★
 
-    useFocusEffect(
-  React.useCallback(() => {
-    const requestNotificationPermission = async () => {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('エラー', '通知の許可が必要です');
+      // 4. 設定を確認し、新しい仕様に基づいて通知を予約
+      const notificationSettings = await getNotificationSetting();
+
+      // (A) アプリ全体の設定で、通知が「オン」になっているか？
+      if (notificationSettings.isEnabled) {
+        
+        // (B) このタスクの優先度が「高」(値が3)に設定されているか？
+        if (priority === 3) {
+
+          // (C) ユーザーがリマインダーの日時をセットしたか？ (nullではないか？)
+          if (reminderDate) {
+            console.log('条件を全て満たしたため、通知を予約します。');
+
+            try {
+              // 過去の日時でないことを確認
+              if (reminderDate.getTime() > Date.now()) {
+                await Notifications.scheduleNotificationAsync({
+                  content: {
+                    title: "優先度「高」のタスクの期限です！", // タイトルを少し変更
+                    body: taskData.title,
+                    data: { taskId: savedTaskResponse.data.id },
+                  },
+                  trigger: {
+                    type: Notifications.SchedulableTriggerInputTypes.DATE,
+                    date: reminderDate, // ユーザーが設定した日時をそのまま使う
+                  },
+                });
+                console.log(`リマインダーを ${reminderDate.toLocaleString()} にセットしました`);
+              }
+            } catch(e) {
+              console.error("通知の予約処理中にエラーが発生:", e);
+            }
+          } else {
+            // (C) の条件を満たさなかった場合
+            console.log('リマインダーが設定されていないため、通知をスキップしました。');
+          }
+        } else {
+          // (B) の条件を満たさなかった場合
+          console.log('優先度が「高」ではないため、通知をスキップしました。');
+        }
+      } else {
+        // (A) の条件を満たさなかった場合
+        console.log('アプリの通知設定がオフなので、予約をスキップしました。');
       }
-    };
+      
+      // ★★★ 入れ替えはここまで ★★★
+      
+      // 5. 前の画面に戻る (変更なし)
+      navigation.goBack();
 
-    requestNotificationPermission();
-  }, [])
-);
-
-
-
-  // --- その他のヘルパー関数やメモ化された値 ---
-  const onChangeDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      setDueDate(selectedDate);
+    } catch (error) {
+      console.log('[FAIL] APIリクエストでエラーが発生しました！');
+      if (axios.isAxiosError(error)) {
+        if (error.response) { console.error('サーバーからのエラー応答:', error.response.data); }
+        else if (error.request) { console.error('サーバーから応答がありませんでした。'); }
+        else { console.error('リクエスト設定エラー:', error.message); }
+      } else { console.error('axios以外の予期せぬエラーです:', error); }
+      Alert.alert('エラー', 'タスクの保存に失敗しました。');
     }
   };
+
+
+  // --- OSの通知許可を確認する処理 (変更なし) ---
+  useFocusEffect(
+    React.useCallback(() => {
+      const requestNotificationPermission = async () => {
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('注意', 'プッシュ通知の許可がありません。リマインダーを設定するには、OSの設定画面から通知を許可してください。');
+        }
+      };
+      requestNotificationPermission();
+    }, [])
+  );
+
+  // --- その他のヘルパー関数やメモ化された値 (変更なし) ---
+  const onChangeDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (selectedDate) { setDueDate(selectedDate); }
+  };
+
+   // ★★★ ここから追加 ★★★
+  const onChangeReminderDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    setShowReminderPicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      setReminderDate(selectedDate);
+    }
+  };
+  // ★★★ 追加ここまで ★★★
 
   const categoryItems = useMemo(() => categories.map(cat => ({ label: cat.name, value: cat.id })), [categories]);
   const priorityItems = useMemo(() => ([{ label: '低', value: 1 }, { label: '中', value: 2 }, { label: '高', value: 3 }]), []);
   const goalItems = useMemo(() => goals.map(goal => ({ label: goal.name, value: goal.id })), [goals]);
 
   
-  // --- 表示部分 (JSX) ---
+  // --- 表示部分 (JSX) (変更なし) ---
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <View style={tw`flex-row justify-between items-center p-4`}>
@@ -248,10 +260,37 @@ const TaskDetailScreen = () => {
           <Text style={[tw`text-lg`, { color: theme.colors.text }]}>期日</Text>
           <Text style={[tw`text-base`, { color: theme.colors.text }]}>{dueDate.toLocaleDateString()}</Text>
         </TouchableOpacity>
+
+        {/* ★★★ ここからが丸ごと追加するブロック ★★★ */}
+        <TouchableOpacity
+          onPress={() => setShowReminderPicker(true)}
+          style={[tw`p-4 mt-4 rounded-lg flex-row justify-between items-center`, { backgroundColor: theme.colors.card }]}
+        >
+          <Text style={[tw`text-lg`, { color: theme.colors.text }]}>リマインダー</Text>
+          <Text style={[tw`text-base`, { color: theme.colors.text }]}>
+            {/* reminderDateが設定されていれば日時を、なければ「設定しない」と表示 */}
+            {reminderDate ? reminderDate.toLocaleString() : '設定しない'}
+          </Text>
+        </TouchableOpacity>
+        {/* ★★★ 追加ブロックここまで ★★★ */}
+
+
         <View style={[tw`p-4 mt-4 rounded-lg`, { backgroundColor: theme.colors.card }]}>
           <StyledTextInput label="詳細" value={description} onChangeText={setDescription} multiline />
         </View>
         {showDatePicker && (<DateTimePicker value={dueDate} mode="date" display="spinner" onChange={onChangeDate} />)}
+
+                {/* ★★★ ここから追加 ★★★ */}
+        {showReminderPicker && (
+          <DateTimePicker
+            value={reminderDate || new Date()} // reminderDateがなければ現在日時を初期値に
+            mode="datetime" //「日付と時間」の両方を選べるモード
+            display="spinner"
+            onChange={onChangeReminderDate}
+          />
+        )}
+        {/* ★★★ 追加ここまで ★★★ */}
+
         <View style={tw`my-8`}>
           <StyledButton title={taskId ? "変更を保存" : "タスクを追加"} onPress={handleSaveTask} />
         </View>
