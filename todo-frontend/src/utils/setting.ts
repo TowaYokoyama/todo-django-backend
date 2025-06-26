@@ -17,8 +17,7 @@ export const saveNotificationSetting = async (setting: NotificationSetting): Pro
     
     await AsyncStorage.setItem(NOTIFICATION_SETTING_KEY, jsonValue);
 
-    console.log('設定を保存しました:', jsonValue); // 確認用ログ
-
+  
   } catch (e) {
     // もし保存に失敗したら、エラーを記録します。
     console.error('設定の保存に失敗しました。', e);
