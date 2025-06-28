@@ -126,6 +126,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8081",
     "http://localhost:3000",
     "http://127.0.0.1:9000",
+    "https://todo-django-backend-84ju.vercel.app", # ← ★★★ この行を追加 ★★★
     # "https://your-frontend.vercel.app", # ← デプロイ後にここに追加！
 ]
 
