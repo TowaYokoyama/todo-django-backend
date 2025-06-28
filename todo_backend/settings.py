@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os                      # ★★★ osをインポート
+import dj_database_url         # ★★★ dj_database_urlをインポート
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,16 +22,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ic3_ov#m+9kxck_*8dmvc#9ao9^2+!4un6g@3g#r-5^pa2ze)('
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-ic3_ov#m+9kxck_*8dmvc#9ao9^2+!4un6g@3g#r-5^pa2ze)(')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# ★★★ DEBUGモードを本番環境で自動的にオフにするように変更 ★★★
+# Renderの環境では'RENDER'という環境変数が自動でセットされるため、それがあるかどうかで判断
+DEBUG = 'RENDER' not in os.environ
 
+# ★★★ ALLOWED_HOSTSを本番環境に対応させるように変更 ★★★
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '10.0.2.2', '192.168.0.11']
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -42,22 +48,19 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'dj_rest_auth',
     'django.contrib.sites',
-    'allauth',                  # ← 追加
-    'allauth.account',          # ← 追加
-    'allauth.socialaccount',    # ← 追加
-    'dj_rest_auth.registration',# ← 追加
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'dj_rest_auth.registration',
     'corsheaders'
 ]
 
-
-# サイトIDを設定（dj-rest-authで必要）
-SITE_ID = 1 # ← INSTALLED_APPSの下あたりに追加
-
+SITE_ID = 1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-     'corsheaders.middleware.CorsMiddleware',  # なるべく上の方（SessionMiddlewareやCommonMiddlewareより前が推奨）
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -85,76 +88,50 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'todo_backend.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
+# ★★★ データベース設定を本番環境に対応させるように変更 ★★★
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        # Render上で設定されたDATABASE_URLを使い、なければローカルのSQLiteを使う
+        default=f'sqlite:///{os.path.join(BASE_DIR, "db.sqlite3")}'
+    )
 }
 
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
+# Password validation (変更なし)
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    { 'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator', },
+    { 'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', },
+    { 'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator', },
+    { 'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator', },
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
+# Internationalization (変更なし)
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
 STATIC_URL = 'static/'
+# ★★★ 本番環境で静的ファイルを集める場所を指定 ★★★
+if not DEBUG:
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
+# Default primary key field type (変更なし)
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# todo_backend/settings.py の末尾に追加
-
-# どのオリジンからのリクエストを許可するか
+# ★★★ CORS設定：ここに後でVercelのURLを追加します ★★★
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8081",  # Expo Go (React Native)
-    "http://localhost:3000",  # 一般的なWebフロントエンド
-      "http://127.0.0.1:9000",
+    "http://localhost:8081",
+    "http://localhost:3000",
+    "http://127.0.0.1:9000",
+    # "https://your-frontend.vercel.app", # ← デプロイ後にここに追加！
 ]
 
-# settings.py の末尾にある REST_FRAMEWORK の設定を、以下のように修正
-
+# REST_FRAMEWORK (変更なし)
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        # この行をコメントアウト、または削除します。
-        # 'rest_framework.authentication.SessionAuthentication', 
-        
-        # TokenAuthentication のみを残します。
         'rest_framework.authentication.TokenAuthentication',
     ],
 }
