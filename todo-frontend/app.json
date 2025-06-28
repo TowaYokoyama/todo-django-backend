@@ -27,6 +27,12 @@
     },
     "plugins": [
       "expo-notifications"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "814b5d6a-8242-471c-9704-b8a3d6ee0421"
+      }
+    },
+    "owner": "towayokoyama"
   }
 }
